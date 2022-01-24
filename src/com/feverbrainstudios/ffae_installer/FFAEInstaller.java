@@ -31,8 +31,11 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
 
 public class FFAEInstaller {
+	private static JFrame mainWindow;		
+
 	public static void main(String[] arg) {
-				
+		
+		
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (ClassNotFoundException e3) {
@@ -45,16 +48,16 @@ public class FFAEInstaller {
 			e3.printStackTrace();
 		}
 		
-		JFrame window = new JFrame("FFAE Installer");
-		window.setLayout(new GridLayout(1,2));
+		mainWindow = new JFrame("FFAE Installer");
+		mainWindow.setLayout(new GridLayout(1,2));
 		
 		JPanel leftPanel = new JPanel();
 		leftPanel.setLayout(new GridLayout(2,2));
-		window.add(leftPanel);
+		mainWindow.add(leftPanel);
 
 		JPanel rightPanel = new JPanel();
 		rightPanel.setLayout(new GridLayout(2,2));
-		window.add(rightPanel);
+		mainWindow.add(rightPanel);
 
 		JTextField ffZipPathTextField = new JTextField();
 		ffZipPathTextField.setSize(460, 24);
@@ -73,31 +76,30 @@ public class FFAEInstaller {
 		JButton selectSFA3ZipButton = new JButton("Select SFA3 Zip");
 		rightPanel.add(selectSFA3ZipButton);
 
-		selectFFZipButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser zipChooser = new JFileChooser();
-				zipChooser.setFileFilter(ZIP_FILTER);
-				int returnVal = zipChooser.showOpenDialog(window);
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-				  File file = zipChooser.getSelectedFile();
-				  ffZipPathTextField.setText(file.getAbsolutePath());
-				}
-			}
-		});	
+		selectFFZipButton.addActionListener(new ZipFileChooserListener(ffZipPathTextField));	
+		selectSFA3ZipButton.addActionListener(new ZipFileChooserListener(sfa3zipPathTextField));	
 		
 		patchButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				File file = new File(ffZipPathTextField.getText());
-				if (!ZIP_FILTER.accept(file)) {
-					JOptionPane.showMessageDialog(window, "Please select a valid zip file.");
+				File ffZipFile = new File(ffZipPathTextField.getText());
+				if (!ZIP_FILTER.accept(ffZipFile)) {
+					JOptionPane.showMessageDialog(mainWindow, "Please select a valid Final Fight zip file.");
 					return;
-				} else if (!file.exists()) {
-					JOptionPane.showMessageDialog(window, "File does not exist.");
+				} else if (!ffZipFile.exists()) {
+					JOptionPane.showMessageDialog(mainWindow, "Final Fight zip file does not exist.");
 					return;
 				}
-				
+
+				File sfa3ZipFile = new File(sfa3zipPathTextField.getText());
+				if (!ZIP_FILTER.accept(sfa3ZipFile)) {
+					JOptionPane.showMessageDialog(mainWindow, "Please select a valid Street Fighter Alpha 3 zip file.");
+					return;
+				} else if (!sfa3ZipFile.exists()) {
+					JOptionPane.showMessageDialog(mainWindow, "Street Fighter Alpha 3 zip file does not exist.");
+					return;
+				}
+
 				try {
 					String workDir = System.getProperty("user.dir");
 					
@@ -105,16 +107,23 @@ public class FFAEInstaller {
 					
 					String workDirString = workDir + "\\build1234abcd\\";
 					
-					boolean foundAll =  unzipMatchingCRCS(file.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
-					
+					boolean foundAll =  unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
+					foundAll &=  unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
+
 					if (!foundAll) {
-						JOptionPane.showMessageDialog(window, "The following CRCs were incorrect:\r\n");
+						JOptionPane.showMessageDialog(mainWindow, "The following CRCs were incorrect:\r\n");
 						execAndPrintToConsole("delete_work_directory.bat");
 						return;
 					}
-					
-					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_split.cfg " + workDirString + "ffight.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_gfx_split.cfg " + workDirString + "ffight_gfx.bin");
+
+					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine sfa3_audio_split.cfg " + workDirString + "combined\\sfa3_audio.bin");
+
+					execAndPrintToConsole("liteips.exe ffae_cps2_prg_patch.ips " + workDirString + "ffight.bin");
+					execAndPrintToConsole("liteips.exe ffight_gfx_new.ips " + workDirString + "ffight_gfx.bin");
+
+					/*
 
 					execAndPrintToConsole("liteips.exe ffight_hack.ips " + workDirString + "ffight.bin");
 					execAndPrintToConsole("liteips.exe ffight_gfx_new.ips " + workDirString + "ffight_gfx.bin");
@@ -122,16 +131,15 @@ public class FFAEInstaller {
 					execAndPrintToConsole("java -jar RomMangler.jar split final_fight_out_split.cfg " + workDirString + "ffight.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar split final_fight_gfx_split.cfg " + workDirString + "ffight_gfx.bin");
 					
-					execAndPrintToConsole("delete_left_overs.bat");
 					
-					execAndPrintToConsole("java -jar RomMangler.jar zipdir " + workDirString + " " + file.getParent() + "\\ffightae.zip");
+					execAndPrintToConsole("java -jar RomMangler.jar zipdir " + workDirString + " " + ffZipFile.getParent() + "\\ffightae.zip");
+*/					
+				//	execAndPrintToConsole("delete_work_directory.bat");
 					
-					execAndPrintToConsole("delete_work_directory.bat");
-					
-					JOptionPane.showMessageDialog(window, "Patch created successfully!\r\n\r\nThe patch is located:\r\n\r\n" + file.getParent() + "\\ffightae.zip"); 
+					JOptionPane.showMessageDialog(mainWindow, "Patch created successfully!\r\n\r\nThe patch is located:\r\n\r\n" + ffZipFile.getParent() + "\\ffightae.zip"); 
 				} catch (IOException e1) {
 					e1.printStackTrace();
-					JOptionPane.showMessageDialog(window, "There was an error, please check the console.");
+					JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console.");
 					try {
 						execAndPrintToConsole("delete_work_directory.bat");
 					} catch (IOException e2) {
@@ -142,7 +150,7 @@ public class FFAEInstaller {
 			}
 		});
 		  
-		window.addWindowListener(new WindowListener() {
+		mainWindow.addWindowListener(new WindowListener() {
 			@Override
 			public void windowOpened(WindowEvent e) {}
 			@Override
@@ -159,9 +167,9 @@ public class FFAEInstaller {
 			public void windowActivated(WindowEvent e) {}
 		});
 
-		window.setVisible(true);
-		window.setSize(600, 112);
-		window.setResizable(false);
+		mainWindow.setVisible(true);
+		mainWindow.setSize(600, 112);
+		mainWindow.setResizable(false);
 	}
 	
 	private static boolean unzipMatchingCRCS(String zipFile, String path, Set<String> crcsSet, Map<String, String> crcsToNames) {
@@ -185,6 +193,7 @@ public class FFAEInstaller {
 				nextEntry = zipStream.getNextEntry();
 			}
 			zipStream.close();
+			inputStream.close();
 		} catch (FileNotFoundException e) {
 			System.out.println(e.getLocalizedMessage());
 			e.printStackTrace();
@@ -273,4 +282,22 @@ public class FFAEInstaller {
 			return f.isDirectory() || f.getName().contains(".zip"); 
 		}
 	};
+	
+	private static class ZipFileChooserListener implements ActionListener {
+		private JTextField textField;
+
+		public ZipFileChooserListener(JTextField textField) {
+			this.textField = textField;
+		}
+		
+		public void actionPerformed(ActionEvent e) {
+			JFileChooser zipChooser = new JFileChooser();
+			zipChooser.setFileFilter(ZIP_FILTER);
+			int returnVal = zipChooser.showOpenDialog(mainWindow);
+			if (returnVal == JFileChooser.APPROVE_OPTION) {
+			  File file = zipChooser.getSelectedFile();
+			  textField.setText(file.getAbsolutePath());
+			}
+		}
+	}
 }
