@@ -116,12 +116,24 @@ public class FFAEInstaller {
 						return;
 					}
 
-					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine sfa3_audio_split.cfg " + workDirString + "combined\\sfa3_audio.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\sfa3_audio_split.cfg " + workDirString + "combined\\sfa3_audio.bin");
 
-					execAndPrintToConsole("liteips.exe ffae_cps2_prg_patch.ips " + workDirString + "ffight.bin");
-					execAndPrintToConsole("liteips.exe ffight_gfx_new.ips " + workDirString + "ffight_gfx.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_separate_gfx_layers_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_recombine_gfx_cps2.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin");
+
+					execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
+					
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
+					
+					execAndPrintToConsole("java -jar RomMangler.jar zipdir "+ workDirString + "\\mister\\gfx " + workDir + "\\ffightae_cps2_gfx.zip");
+
+					
+
+					
+//					execAndPrintToConsole("liteips.exe ffae_cps2_prg_patch.ips " + workDirString + "ffight.bin");
+//					execAndPrintToConsole("liteips.exe ffae_cps2_gfx_patch.ips " + workDirString + "ffight_cps2_gfx.bin");
 
 					/*
 
