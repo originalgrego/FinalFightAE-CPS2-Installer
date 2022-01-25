@@ -107,14 +107,20 @@ public class FFAEInstaller {
 					
 					String workDirString = workDir + "\\build1234abcd\\";
 					
-					boolean foundAll =  unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
-					foundAll &=  unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
-
-					if (!foundAll) {
-						JOptionPane.showMessageDialog(mainWindow, "The following CRCs were incorrect:\r\n");
+					String invalidCrcs = unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
+					if (!invalidCrcs.isEmpty()) {
+						JOptionPane.showMessageDialog(mainWindow, "The following Final Fight CRCs were not found:\r\n" + invalidCrcs);
 						execAndPrintToConsole("delete_work_directory.bat");
 						return;
 					}
+
+					invalidCrcs = unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
+					if (!invalidCrcs.isEmpty()) {
+						JOptionPane.showMessageDialog(mainWindow, "The following Street Fighter Alpha 3 CRCs were not found:\r\n" + invalidCrcs);
+						execAndPrintToConsole("delete_work_directory.bat");
+						return;
+					}
+
 
 					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
@@ -143,9 +149,9 @@ public class FFAEInstaller {
 					
 					execAndPrintToConsole(workDir + "\\copy_and_zip_results.bat");
 					
-//					execAndPrintToConsole("delete_work_directory.bat");
+					execAndPrintToConsole("delete_work_directory.bat");
 					
-					JOptionPane.showMessageDialog(mainWindow, "Patch created successfully!\r\n\r\nThe patch is located:\r\n\r\n" + ffZipFile.getParent() + "\\ffightae.zip"); 
+					JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
 				} catch (IOException e1) {
 					e1.printStackTrace();
 					JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console.");
@@ -181,10 +187,13 @@ public class FFAEInstaller {
 		mainWindow.setResizable(false);
 	}
 	
-	private static boolean unzipMatchingCRCS(String zipFile, String path, Set<String> crcsSet, Map<String, String> crcsToNames) {
+	private static String unzipMatchingCRCS(String zipFile, String path, Set<String> crcsSet, Map<String, String> crcsToNames) {
+		String result = "";
 		int count = 0;
 		path = new File(path).getAbsolutePath();
 		FileInputStream inputStream;
+		Set<String> crcSetCopy = new HashSet<String>();
+		crcSetCopy.addAll(crcsSet);
 		try {
 			inputStream = new FileInputStream(zipFile);
 			ZipInputStream zipStream = new ZipInputStream(inputStream);
@@ -193,6 +202,7 @@ public class FFAEInstaller {
 				if (!nextEntry.isDirectory()) {
 					String hexString = "0x" + String.format("%08X", nextEntry.getCrc()).toUpperCase();
 					if (crcsSet.contains(hexString)) {
+						crcSetCopy.remove(hexString);
 						File newFile = new File(path, crcsToNames.get(hexString));
 						extractFile(zipStream, newFile);
 						count ++;
@@ -211,7 +221,11 @@ public class FFAEInstaller {
 			e.printStackTrace();
 		}
 		
-		return count == crcsSet.size();
+		for (String crc: crcSetCopy) {
+			result += crc + "\r\n";
+		}
+		
+		return result;
 	}
 	
     private static void extractFile(ZipInputStream zipIn, File file) throws IOException {
