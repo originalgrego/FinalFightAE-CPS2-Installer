@@ -136,7 +136,7 @@ public class FFAEInstaller {
 					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_gfx_patch.ips " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
 					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_audio_prg_patch.ips " + workDirString + "combined_patched\\ffight_audio.bin");
 
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_cps2_out_split.cfg " + workDirString + "combined_patched\\ffight.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_gfx_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_audio.bin");
 					
