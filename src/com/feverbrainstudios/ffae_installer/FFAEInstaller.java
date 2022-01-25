@@ -126,10 +126,7 @@ public class FFAEInstaller {
 					execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
 					
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
-					
-					execAndPrintToConsole("java -jar RomMangler.jar zipdir "+ workDirString + "\\mister\\gfx " + workDir + "\\ffightae_cps2_gfx.zip");
-
-					
+										
 					execAndPrintToConsole(workDir + "\\copy_combined_files.bat");
 					
 					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_prg_patch.ips " + workDirString + "combined_patched\\ffight.bin");
@@ -144,19 +141,9 @@ public class FFAEInstaller {
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\darksoft\\final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.01");
 					
+					execAndPrintToConsole(workDir + "\\copy_and_zip_results.bat");
 					
-					/*
-
-					execAndPrintToConsole("liteips.exe ffight_hack.ips " + workDirString + "ffight.bin");
-					execAndPrintToConsole("liteips.exe ffight_gfx_new.ips " + workDirString + "ffight_gfx.bin");
-					
-					execAndPrintToConsole("java -jar RomMangler.jar split final_fight_out_split.cfg " + workDirString + "ffight.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar split final_fight_gfx_split.cfg " + workDirString + "ffight_gfx.bin");
-					
-					
-					execAndPrintToConsole("java -jar RomMangler.jar zipdir " + workDirString + " " + ffZipFile.getParent() + "\\ffightae.zip");
-*/					
-				//	execAndPrintToConsole("delete_work_directory.bat");
+//					execAndPrintToConsole("delete_work_directory.bat");
 					
 					JOptionPane.showMessageDialog(mainWindow, "Patch created successfully!\r\n\r\nThe patch is located:\r\n\r\n" + ffZipFile.getParent() + "\\ffightae.zip"); 
 				} catch (IOException e1) {
