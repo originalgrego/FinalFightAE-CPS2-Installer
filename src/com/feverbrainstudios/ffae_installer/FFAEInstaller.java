@@ -130,11 +130,16 @@ public class FFAEInstaller {
 					execAndPrintToConsole("java -jar RomMangler.jar zipdir "+ workDirString + "\\mister\\gfx " + workDir + "\\ffightae_cps2_gfx.zip");
 
 					
-
+					execAndPrintToConsole(workDir + "\\copy_combined_files.bat");
 					
-//					execAndPrintToConsole("liteips.exe ffae_cps2_prg_patch.ips " + workDirString + "ffight.bin");
-//					execAndPrintToConsole("liteips.exe ffae_cps2_gfx_patch.ips " + workDirString + "ffight_cps2_gfx.bin");
+					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_prg_patch.ips " + workDirString + "combined_patched\\ffight.bin");
+					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_gfx_patch.ips " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_audio_prg_patch.ips " + workDirString + "combined_patched\\ffight_audio.bin");
 
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_cps2_out_split.cfg " + workDirString + "combined_patched\\ffight.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_gfx_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_audio.bin");
+					
 					/*
 
 					execAndPrintToConsole("liteips.exe ffight_hack.ips " + workDirString + "ffight.bin");
