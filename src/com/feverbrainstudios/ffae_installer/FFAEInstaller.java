@@ -140,6 +140,11 @@ public class FFAEInstaller {
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_gfx_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
 					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_audio.bin");
 					
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.02");
+					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\darksoft\\final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.01");
+					
+					
 					/*
 
 					execAndPrintToConsole("liteips.exe ffight_hack.ips " + workDirString + "ffight.bin");
