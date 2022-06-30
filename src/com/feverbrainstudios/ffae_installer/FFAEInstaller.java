@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class FFAEInstaller {
 					JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
 				} catch (IOException e1) {
 					e1.printStackTrace();
-					JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console.");
+					JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console. \r\n" + e1.toString());
 					try {
 						execAndPrintToConsole("delete_work_directory.bat");
 					} catch (IOException e2) {
