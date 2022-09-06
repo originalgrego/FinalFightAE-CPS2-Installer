@@ -33,7 +33,7 @@ import javax.swing.filechooser.FileFilter;
 
 public class FFAEInstaller {
 	private static JFrame mainWindow;		
-
+	
 	public static void main(String[] arg) {
 		
 		
@@ -101,68 +101,8 @@ public class FFAEInstaller {
 					return;
 				}
 
-				try {
-					String workDir = System.getProperty("user.dir");
-					
-					execAndPrintToConsole(workDir + "\\make_work_directory.bat");
-					
-					String workDirString = workDir + "\\build1234abcd\\";
-					
-					String invalidCrcs = unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
-					if (!invalidCrcs.isEmpty()) {
-						JOptionPane.showMessageDialog(mainWindow, "The following Final Fight CRCs were not found:\r\n" + invalidCrcs);
-						execAndPrintToConsole("delete_work_directory.bat");
-						return;
-					}
-
-					invalidCrcs = unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
-					if (!invalidCrcs.isEmpty()) {
-						JOptionPane.showMessageDialog(mainWindow, "The following Street Fighter Alpha 3 CRCs were not found:\r\n" + invalidCrcs);
-						execAndPrintToConsole("delete_work_directory.bat");
-						return;
-					}
-
-
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\sfa3_audio_split.cfg " + workDirString + "combined\\sfa3_audio.bin");
-
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_separate_gfx_layers_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_recombine_gfx_cps2.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin");
-
-					execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
-					
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
-										
-					execAndPrintToConsole(workDir + "\\copy_combined_files.bat");
-					
-					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_prg_patch.ips " + workDirString + "combined_patched\\ffight.bin");
-					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_gfx_patch.ips " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
-					execAndPrintToConsole("liteips.exe ips\\ffae_cps2_audio_prg_patch.ips " + workDirString + "combined_patched\\ffight_audio.bin");
-
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_gfx_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_audio.bin");
-					
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.02");
-					execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\darksoft\\final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
-					execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.01");
-					
-					execAndPrintToConsole(workDir + "\\copy_and_zip_results.bat");
-					
-					execAndPrintToConsole("delete_work_directory.bat");
-					
-					JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
-				} catch (IOException e1) {
-					e1.printStackTrace();
-					JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console. \r\n" + e1.toString());
-					try {
-						execAndPrintToConsole("delete_work_directory.bat");
-					} catch (IOException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-				}
+				OSOperations osOps = OSOperations.getInstance();
+				osOps.performOperations(ffZipFile, sfa3ZipFile);
 			}
 		});
 		  
@@ -187,6 +127,226 @@ public class FFAEInstaller {
 		mainWindow.setSize(600, 112);
 		mainWindow.setResizable(false);
 	}
+	
+	private abstract static class OSOperations {
+		abstract void performOperations(File ffZipFile, File sfa3ZipFile);
+		
+		public static OSOperations getInstance() {
+			String os = System.getProperty("os.name", "generic").toLowerCase();
+			if (os.contains("mac") || os.contains("dar")) {
+				return new MacOsOps();
+			} else if (os.contains("win")) {
+				return new WindowOsOps();
+			}
+
+			return new LinuxOsOps();
+		}
+	}
+	
+	private static class LinuxOsOps extends OSOperations {
+		@Override
+		void performOperations(File ffZipFile, File sfa3ZipFile) {
+			try {
+				String workDir = System.getProperty("user.dir");
+				
+				execAndPrintToConsole(workDir + "/make_work_directory.sh");
+				
+				String workDirString = workDir + "/build1234abcd";
+				
+				String invalidCrcs = unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Final Fight CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("./delete_work_directory.sh");
+					return;
+				}
+
+				invalidCrcs = unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Street Fighter Alpha 3 CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("./delete_work_directory.sh");
+					return;
+				}
+
+
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_split.cfg " + workDirString + "/combined/ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_gfx_split.cfg " + workDirString + "/combined/ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/sfa3_audio_split.cfg " + workDirString + "/combined/sfa3_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/final_fight_separate_gfx_layers_split.cfg " + workDirString + "/combined/ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_recombine_gfx_cps2.cfg " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base.bin " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base_shuffled.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base_shuffled.bin");
+									
+				execAndPrintToConsole(workDir + "/copy_combined_files.sh");
+				
+				execAndPrintToConsole("./flips.linux -a -i ./ips/ffae_cps2_prg_patch.ips " + workDirString + "/combined_patched/ffight.bin");
+				execAndPrintToConsole("./flips.linux -a -i ./ips/ffae_cps2_gfx_patch.ips " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("./flips.linux -a -i ./ips/ffae_cps2_audio_prg_patch.ips " + workDirString + "/combined_patched/ffight_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_gfx_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight_audio.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/darksoft/final_fight_cps2_darksoft_split.cfg " + workDirString + "/darksoft/ffae.02");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/darksoft/final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/darksoft/final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "/darksoft/ffae.01");
+				
+				execAndPrintToConsole(workDir + "/copy_and_zip_results.sh");
+				
+				execAndPrintToConsole("./delete_work_directory.sh");
+				
+				JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
+			} catch (IOException e1) {
+				e1.printStackTrace();
+				JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console. \r\n" + e1.toString());
+				try {
+					execAndPrintToConsole("./delete_work_directory.sh");
+				} catch (IOException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private static class MacOsOps extends OSOperations {
+		@Override
+		void performOperations(File ffZipFile, File sfa3ZipFile) {
+			try {
+				String workDir = System.getProperty("user.dir");
+				
+				execAndPrintToConsole(workDir + "/make_work_directory.sh");
+				
+				String workDirString = workDir + "/build1234abcd";
+				
+				String invalidCrcs = unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Final Fight CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("./delete_work_directory.sh");
+					return;
+				}
+
+				invalidCrcs = unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Street Fighter Alpha 3 CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("./delete_work_directory.sh");
+					return;
+				}
+
+
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_split.cfg " + workDirString + "/combined/ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_gfx_split.cfg " + workDirString + "/combined/ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/sfa3_audio_split.cfg " + workDirString + "/combined/sfa3_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/final_fight_separate_gfx_layers_split.cfg " + workDirString + "/combined/ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/final_fight_recombine_gfx_cps2.cfg " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base.bin " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base_shuffled.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "/combined/cps2_gfx/ffight_gfx_cps2_base_shuffled.bin");
+									
+				execAndPrintToConsole(workDir + "/copy_combined_files.sh");
+				
+				execAndPrintToConsole("./flips.macos -a -i ./ips/ffae_cps2_prg_patch.ips " + workDirString + "/combined_patched/ffight.bin");
+				execAndPrintToConsole("./flips.macos -a -i ./ips/ffae_cps2_gfx_patch.ips " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("./flips.macos -a -i ./ips/ffae_cps2_audio_prg_patch.ips " + workDirString + "/combined_patched/ffight_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_gfx_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/mame/final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "/combined_patched/ffight_audio.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/darksoft/final_fight_cps2_darksoft_split.cfg " + workDirString + "/darksoft/ffae.02");
+				execAndPrintToConsole("java -jar RomMangler.jar split ./split_cfgs_mac/darksoft/final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "/combined_patched/ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine ./split_cfgs_mac/darksoft/final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "/darksoft/ffae.01");
+				
+				execAndPrintToConsole(workDir + "/copy_and_zip_results.sh");
+				
+				execAndPrintToConsole("./delete_work_directory.sh");
+				
+				JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
+			} catch (IOException e1) {
+				e1.printStackTrace();
+				JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console. \r\n" + e1.toString());
+				try {
+					execAndPrintToConsole("./delete_work_directory.sh");
+				} catch (IOException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private static class WindowOsOps extends OSOperations {
+		@Override
+		public void performOperations(File ffZipFile, File sfa3ZipFile) {
+			try {
+				String workDir = System.getProperty("user.dir");
+				
+				execAndPrintToConsole(workDir + "\\make_work_directory.bat");
+				
+				String workDirString = workDir + "\\build1234abcd\\";
+				
+				String invalidCrcs = unzipMatchingCRCS(ffZipFile.getAbsolutePath(), workDirString, FF_ROM_CRCS_SET, FF_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Final Fight CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("delete_work_directory.bat");
+					return;
+				}
+
+				invalidCrcs = unzipMatchingCRCS(sfa3ZipFile.getAbsolutePath(), workDirString, SFA3_ROM_CRCS_SET, SFA3_ROM_CRCS_TO_NAMES);
+				if (!invalidCrcs.isEmpty()) {
+					JOptionPane.showMessageDialog(mainWindow, "The following Street Fighter Alpha 3 CRCs were not found:\r\n" + invalidCrcs);
+					execAndPrintToConsole("delete_work_directory.bat");
+					return;
+				}
+
+
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_split.cfg " + workDirString + "combined\\ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_gfx_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\sfa3_audio_split.cfg " + workDirString + "combined\\sfa3_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_separate_gfx_layers_split.cfg " + workDirString + "combined\\ffight_gfx.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\final_fight_recombine_gfx_cps2.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar cps2_reshuffle " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base.bin " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\final_fight_gfx_cps2_base_mister_split.cfg " + workDirString + "combined\\cps2_gfx\\ffight_gfx_cps2_base_shuffled.bin");
+									
+				execAndPrintToConsole(workDir + "\\copy_combined_files.bat");
+				
+				execAndPrintToConsole("liteips.exe ips\\ffae_cps2_prg_patch.ips " + workDirString + "combined_patched\\ffight.bin");
+				execAndPrintToConsole("liteips.exe ips\\ffae_cps2_gfx_patch.ips " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+				execAndPrintToConsole("liteips.exe ips\\ffae_cps2_audio_prg_patch.ips " + workDirString + "combined_patched\\ffight_audio.bin");
+
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_gfx_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\mame\\final_fight_snd_prg_cps2_mame_split.cfg " + workDirString + "combined_patched\\ffight_audio.bin");
+				
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.02");
+				execAndPrintToConsole("java -jar RomMangler.jar split split_cfgs\\darksoft\\final_fight_gfx_cps2_darksoft_split.cfg " + workDirString + "combined_patched\\ffight_gfx_cps2.bin");
+				execAndPrintToConsole("java -jar RomMangler.jar combine split_cfgs\\darksoft\\final_fight_snd_prg_cps2_darksoft_split.cfg " + workDirString + "darksoft\\ffae.01");
+				
+				execAndPrintToConsole(workDir + "\\copy_and_zip_results.bat");
+				
+				execAndPrintToConsole("delete_work_directory.bat");
+				
+				JOptionPane.showMessageDialog(mainWindow, "Roms created successfully!\r\n\r\nThe roms will be located in the results directory.\r\n"); 
+			} catch (IOException e1) {
+				e1.printStackTrace();
+				JOptionPane.showMessageDialog(mainWindow, "There was an error, please check the console. \r\n" + e1.toString());
+				try {
+					execAndPrintToConsole("delete_work_directory.bat");
+				} catch (IOException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	
 	private static String unzipMatchingCRCS(String zipFile, String path, Set<String> crcsSet, Map<String, String> crcsToNames) {
 		String result = "";
